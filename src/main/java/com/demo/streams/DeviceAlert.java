@@ -83,7 +83,8 @@ public class DeviceAlert {
         final String deviceTopic = fileProperties.getProperty("device.topic.name");
         final String heartbeatTopic = fileProperties.getProperty("heartbeat.topic.name");
         final String alertTopic = fileProperties.getProperty("alert.topic.name");
-        final String windowTopic = "mainHeartbeatTopic";
+        final String mainHeartbeatTopic = "mainHeartbeatTopic";
+        final String broadcastMainHeartbeatTopic = "broadcastMainHeartbeatTopic";
 
         final KTable<String, String> deviceTable = builder.table(deviceTopic,
                 Consumed.with(Serdes.String(), Serdes.String()));
@@ -91,35 +92,11 @@ public class DeviceAlert {
         final KStream<String, Long> heartbeatStream = builder.stream(heartbeatTopic,
                 Consumed.with(Serdes.String(), Serdes.Long()));
 
-        final KTable<String, Long> mainHeartbeatTable = builder.table(windowTopic,
+        final KStream<String, Long> mainHeartbeatStream = builder.stream(mainHeartbeatTopic,
                 Consumed.with(Serdes.String(), Serdes.Long()));
 
-//        // codigo bueno bueno
-////        KTable<String, String> heartbeatsDevicesCountTable =
-//        heartbeatStream
-//                .groupByKey()
-//                .windowedBy(TimeWindows.of(Duration.ofSeconds(30)).grace(Duration.ofSeconds(5)))
-//                .count()
-//                .suppress(untilWindowCloses(unbounded()))
-//                .toStream()
-//                .filter(((deviceId, heartbeatsCount) -> heartbeatsCount != null && heartbeatsCount >= 3))
-//                .map((windowKey, value) -> KeyValue.pair(windowKey.key(), windowKey.window().endTime().toString()))
-//                .peek((key, lastGoodCount) -> System.out.println("Last time 3 heartbeats are sent was " + lastGoodCount + " from " + key))
-////                .toTable(Named.as("heartbeatsDevicesCountTable"), Materialized.with(Serdes.String(), Serdes.String()))
-//                .to(alertTopic, Produced.with(Serdes.String(), Serdes.String()))
-//        ;
-//
-//        // SELECT * from deviceTable left join heartbeatsDevicesCountTable
-//        // problem is no events on device side needs to be send to generate a <deviceId, null>
-////        deviceTable
-////                .leftJoin(heartbeatsDevicesCountTable, (status, count) -> count)
-////                .toStream(Named.as("device-heartbeat-leftjoin-stream"))
-//////                .filter(((deviceId, heartbeatsCount) -> heartbeatsCount == null || heartbeatsCount < 3))
-////                .peek((key, value) -> System.out.println("Sad to say device " + key + " just send this number of heartbeats: " + value))
-////                .mapValues(heartbeatCount -> "Number of received heartbeats from this device is " + heartbeatCount)
-////                .to(alertTopic, Produced.with(Serdes.String(), Serdes.String()))
-//////                ;
-
+        final KTable<String, Long> broadcastMainHeartbeatTable = builder.table(broadcastMainHeartbeatTopic,
+                Consumed.with(Serdes.String(), Serdes.Long()));
 
         KTable<String, Long> lastGoodDevicesWindowTable =
                 heartbeatStream
@@ -132,9 +109,14 @@ public class DeviceAlert {
                         .map((windowKey, value) -> KeyValue.pair(windowKey.key(), windowKey.window().endTime().toEpochMilli()))
                         .toTable(Named.as("lastGoodDevicesWindowTable"), Materialized.with(Serdes.String(), Serdes.Long()));
 
+        // we need to broadcast the event to all partitions to be able to make the join
+        mainHeartbeatStream
+                .to(broadcastMainHeartbeatTopic,
+                        Produced.with(Serdes.String(), Serdes.Long(), new BroadcastingPartitioner<>()));
+
         deviceTable
-                .leftJoin(mainHeartbeatTable,
-                        deviceValue -> deviceValue,
+                .leftJoin(broadcastMainHeartbeatTable,
+                        deviceStatus -> deviceStatus,
                         (left, right) -> right,
                         Named.as("device-mainheartbeat-join")
                 )

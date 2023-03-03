@@ -2,3 +2,4 @@
 gradle
 stata.dir
 target
+*.iml
