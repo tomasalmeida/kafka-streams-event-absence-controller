@@ -92,6 +92,7 @@ public class DeviceAlert {
         final KStream<String, Long> heartbeatStream = builder.stream(heartbeatTopic,
                 Consumed.with(Serdes.String(), Serdes.Long()));
 
+
         final KStream<String, Long> mainHeartbeatStream = builder.stream(mainHeartbeatTopic,
                 Consumed.with(Serdes.String(), Serdes.Long()));
 
@@ -105,7 +106,7 @@ public class DeviceAlert {
                         .count()
                         .suppress(untilWindowCloses(unbounded()))
                         .filter(((deviceId, heartbeatsCount) -> heartbeatsCount != null && heartbeatsCount >= 3))
-                        .toStream()
+                        .toStream(Named.as("last-good-devices-window-stream"))
                         .map((windowKey, value) -> KeyValue.pair(windowKey.key(), windowKey.window().endTime().toEpochMilli()))
                         .toTable(Named.as("lastGoodDevicesWindowTable"), Materialized.with(Serdes.String(), Serdes.Long()));
 
@@ -122,7 +123,7 @@ public class DeviceAlert {
                 )
                 .leftJoin(lastGoodDevicesWindowTable,
                         (left, right) -> right,
-                        Named.as("lastgoodwindow-join"))
+                        Named.as("last-good-window-join"))
                 .toStream(Named.as("device-heartbeat-leftjoin-stream"))
                 .filter(((deviceId, lastGoodWindow) -> isLastGoodWindowTooOld(lastGoodWindow)))
                 .mapValues(this::generateAlertEvent)
