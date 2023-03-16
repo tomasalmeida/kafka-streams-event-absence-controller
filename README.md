@@ -7,7 +7,12 @@
 broadcastMainHeartbeatTopic.
 * broadcastMainHeartbeatTopic: it has the same number of partitions than deviceTopic (needed to trigger the join.
 
-A device should send 1 heartbeat each 10 seconds and in case it sends less than 3 heartbeats in 30 seconds, an alert is sent.
+
+**DeviceAlert Class**
+A device that is in the deviceTopic should send 1 heartbeat each 10 seconds and in case it sends less than 3 heartbeats in 30 seconds, an alert is sent.
+
+**DeviceAlert2 Class**
+A device should send 1 heartbeat each 10 seconds and in case it sends less than 3 heartbeats in 30 seconds, an alert is sent. If a device never sent a goodWindow (3 heartbeats), it is ignored.
 
 ## start
 
