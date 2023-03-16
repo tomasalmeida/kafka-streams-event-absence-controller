@@ -1,3 +1,14 @@
+# kafka-streams-event-absence-controller
+
+* deviceTopic: the activated devices are sent to this topic each message is <deviceId, "active">, a tombstone is sent if the device is deactivated
+* heartbeatTopic: each device sends a heartbeat to this topic. Message format <deviceId, time in milliseconds>
+* alertTopic: topic where the alerts about disconnected active devices are sent. The message is resent until the device ir reconnected or deactivated.
+* mainHeartbeatTopic: technical topic where the heartbeat control message is sent. Each time a message is sent here it is broadcasted to all partitions in 
+broadcastMainHeartbeatTopic.
+* broadcastMainHeartbeatTopic: it has the same number of partitions than deviceTopic (needed to trigger the join.
+
+A device should send 1 heartbeat each 10 seconds and in case it sends less than 3 heartbeats in 30 seconds, an alert is sent.
+
 ## start
 
 ```
