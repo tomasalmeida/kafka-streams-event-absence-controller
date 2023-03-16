@@ -15,7 +15,11 @@
 ## device alert (1st shell)
 
 ```
-    java -classpath target/event-absence-1.0.0-SNAPSHOT-jar-with-dependencies.jar com.demo.streams.DeviceAlert 
+    java -classpath target/event-absence-1.0.0-SNAPSHOT-jar-with-dependencies.jar com.demo.streams.DeviceAlert
+    
+    or
+    
+     java -classpath target/event-absence-1.0.0-SNAPSHOT-jar-with-dependencies.jar com.demo.streams.DeviceAlert2
 ```
 
 ## heartbeat producer (2nd shell)

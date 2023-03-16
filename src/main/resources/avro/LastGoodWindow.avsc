@@ -1,0 +1,8 @@
+{"namespace": "com.demo.streams.models",
+ "type": "record",
+ "name": "GoodWindow",
+ "fields": [
+     {"name": "deviceStatus", "type": "string"},
+     {"name": "lastWindow",  "type": "long"}
+ ]
+}
