@@ -78,7 +78,7 @@ public class DeviceAlert {
     }
 
     public Topology buildTopology() {
-        final StreamsBuilder builder = new StreamsBuilder();
+        final StreamsBuilder streamsBuilder = new StreamsBuilder();
 
         final String deviceTopic = fileProperties.getProperty("device.topic.name");
         final String heartbeatTopic = fileProperties.getProperty("heartbeat.topic.name");
@@ -86,17 +86,17 @@ public class DeviceAlert {
         final String mainHeartbeatTopic = "mainHeartbeatTopic";
         final String broadcastMainHeartbeatTopic = "broadcastMainHeartbeatTopic";
 
-        final KTable<String, String> deviceTable = builder.table(deviceTopic,
+        final KTable<String, String> deviceTable = streamsBuilder.table(deviceTopic,
                 Consumed.with(Serdes.String(), Serdes.String()));
 
-        final KStream<String, Long> heartbeatStream = builder.stream(heartbeatTopic,
+        final KStream<String, Long> heartbeatStream = streamsBuilder.stream(heartbeatTopic,
                 Consumed.with(Serdes.String(), Serdes.Long()));
 
 
-        final KStream<String, Long> mainHeartbeatStream = builder.stream(mainHeartbeatTopic,
+        final KStream<String, Long> mainHeartbeatStream = streamsBuilder.stream(mainHeartbeatTopic,
                 Consumed.with(Serdes.String(), Serdes.Long()));
 
-        final KTable<String, Long> broadcastMainHeartbeatTable = builder.table(broadcastMainHeartbeatTopic,
+        final KTable<String, Long> broadcastMainHeartbeatTable = streamsBuilder.table(broadcastMainHeartbeatTopic,
                 Consumed.with(Serdes.String(), Serdes.Long()));
 
         KTable<String, Long> lastGoodDevicesWindowTable =
@@ -130,9 +130,8 @@ public class DeviceAlert {
                 .peek(this::printEvent)
                 .to(alertTopic, Produced.with(Serdes.String(), Serdes.String()))
         ;
-
-
-        Topology topology = builder.build(properties);
+        
+        Topology topology = streamsBuilder.build(properties);
         System.out.println(topology.describe());
         return topology;
     }

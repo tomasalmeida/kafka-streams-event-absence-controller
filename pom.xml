@@ -12,10 +12,18 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <java.version>11</java.version>
+        <java.version>17</java.version>
         <slf4j-api.version>1.7.36</slf4j-api.version>
-        <kafka.version>3.4.0</kafka.version>
+        <kafka.version>7.7.3-ce</kafka.version>
+        <confluent.version>7.7.3</confluent.version>
     </properties>
+
+    <repositories>
+        <repository>
+            <id>confluent</id>
+            <url>https://packages.confluent.io/maven/</url>
+        </repository>
+    </repositories>
 
     <dependencies>
 
@@ -33,7 +41,7 @@
         <dependency>
             <groupId>io.confluent</groupId>
             <artifactId>kafka-streams-avro-serde</artifactId>
-            <version>7.1.1</version>
+            <version>${confluent.version}</version>
         </dependency>
 
         <dependency>
@@ -61,8 +69,8 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.10.1</version>
                 <configuration>
-                    <source>${java.version}</source>
-                    <target>${java.version}</target>
+                    <source>16</source>
+                    <target>16</target>
                     <compilerArgs>
                         <arg>-Xlint:all</arg>
                         <!--TODO: enable this once we have warnings under control<arg>-Werror</arg>-->

@@ -2,7 +2,8 @@ package com.demo.streams;
 
 import com.demo.streams.common.PropertiesLoader;
 import com.demo.streams.models.GoodWindow;
-import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig;
+import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.streams.serdes.avro.SpecificAvroSerde;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.Serdes;
@@ -13,8 +14,6 @@ import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.util.Collections;
-import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
 
@@ -68,7 +67,8 @@ public class DeviceAlert2 {
         Properties fileProperties = PropertiesLoader.load(PropertiesLoader.CONFIG.STREAMS);
 
         final Properties config = new Properties();
-        String client = fileProperties.getProperty("application.id") + "." + System.currentTimeMillis();
+//        String client = fileProperties.getProperty("application.id") + "." + System.currentTimeMillis();
+        String client = fileProperties.getProperty("application.id");
         config.put(StreamsConfig.APPLICATION_ID_CONFIG, client);
         config.put(StreamsConfig.CLIENT_ID_CONFIG, client);
         config.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, fileProperties.getProperty("bootstrap.servers"));
@@ -100,7 +100,8 @@ public class DeviceAlert2 {
         final KTable<String, Long> broadcastMainHeartbeatTable = builder.table(broadcastMainHeartbeatTopic,
                 Consumed.with(Serdes.String(), Serdes.Long()));
 
-        final SpecificAvroSerde<GoodWindow> goodWindowSerde = createSpecificSerde(schemaRegistryUrl);
+        SchemaRegistryClient schemaRegistryClient = new CachedSchemaRegistryClient(schemaRegistryUrl, 10);
+        final SpecificAvroSerde<GoodWindow> goodWindowSerde = new SpecificAvroSerde<>(schemaRegistryClient);
 
         KTable<String, GoodWindow> lastGoodDevicesWindowTable =
                 heartbeatStream
@@ -136,16 +137,6 @@ public class DeviceAlert2 {
         return topology;
     }
 
-    private static SpecificAvroSerde<GoodWindow> createSpecificSerde(String schemaRegistryUrl) {
-        final Map<String, String> serdeConfig =
-                Collections.singletonMap(AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG,
-                        schemaRegistryUrl);
-
-        final SpecificAvroSerde<GoodWindow> goodWindowSerde = new SpecificAvroSerde<>();
-        goodWindowSerde.configure(serdeConfig, false);
-        return goodWindowSerde;
-    }
-
     private static GoodWindow createGoodWindow(Windowed<String> windowKey) {
         return new GoodWindow("active", windowKey.window().endTime().toEpochMilli());
     }
@@ -153,7 +144,7 @@ public class DeviceAlert2 {
     private boolean isLastGoodWindowTooOld(String deviceId, GoodWindow lastGoodWindow) {
         if (lastGoodWindow == null) return true;
         Instant lastGoodWindowInstant = Instant.ofEpochMilli(lastGoodWindow.getLastWindow());
-        Instant instant30SecondsAgo = Instant.now().minusSeconds(30);
+        Instant instant30SecondsAgo = Instant.now().minusSeconds(40);
         boolean isWindowOld = lastGoodWindowInstant.isBefore(instant30SecondsAgo);
         // for debugging purposes
         System.out.println("device: " + deviceId + " with window: [" + lastGoodWindowInstant + "] looks old? " + isWindowOld);
